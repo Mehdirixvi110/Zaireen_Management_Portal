@@ -8,8 +8,8 @@ from PIL import Image
 import shutil
 
 # Prevent page config from being called again if this is imported
-if __name__ == "__main__":
-    st.set_page_config(page_title="Kafla Registration", layout="centered")
+#if __name__ == "__main__":
+    #st.set_page_config(page_title="Kafla Registration", layout="centered")
 
 st.title("🕌 Kafla Registration Form | قافلہ رجسٹریشن")
 
