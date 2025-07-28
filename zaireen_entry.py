@@ -4,7 +4,6 @@ import os
 import uuid
 from datetime import datetime
 from pathlib import Path
-from PIL import Image
 import shutil
 import io
 from passporteye import read_mrz
@@ -13,49 +12,43 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 
-# App title and config
+# App setup
 st.set_page_config(page_title="Zaireen Registration", layout="centered")
 st.title("🧕 Zaireen Registration | زائرین کی رجسٹریشن")
 
-# Define data paths
+# Define storage paths
 BASE_DIR = Path("docs")
-BASE_DIR.mkdir(exist_ok=True)
 CSV_FILE = BASE_DIR / "zaireen.csv"
 KAFLA_CSV = Path("kafla.csv")
 TEMP_UPLOAD_DIR = BASE_DIR / "temp_uploads"
-TEMP_UPLOAD_DIR.mkdir(exist_ok=True)
+TEMP_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
-# Session state for tracking
-if "uploaded_files" not in st.session_state:
-    st.session_state.uploaded_files = []
-if "processed_files" not in st.session_state:
-    st.session_state.processed_files = set()
-
-# Load kafla list
-if KAFLA_CSV.exists():
-    kafla_df = pd.read_csv(KAFLA_CSV)
-else:
+# Load kafla data
+if not KAFLA_CSV.exists():
     st.error("⚠️ No Kafla data found. Please register a Kafla first.")
     st.stop()
 
-# Load existing zaireen data
+kafla_df = pd.read_csv(KAFLA_CSV)
+kafla_names = kafla_df.apply(lambda row: f"{row['Kafla Name']} ({row['Salar Name']})", axis=1).tolist()
+kafla_map = dict(zip(kafla_names, kafla_df["Kafla Code"]))
+
+# Select Kafla
+selected_kafla_name = st.selectbox("Select Kafla | قافلہ منتخب کریں", options=kafla_names)
+kafla_code = kafla_map[selected_kafla_name]
+kafla_dir = BASE_DIR / kafla_code / "zaireen"
+kafla_dir.mkdir(parents=True, exist_ok=True)
+
+# Load existing zaireen
 if CSV_FILE.exists():
     df = pd.read_csv(CSV_FILE)
 else:
     df = pd.DataFrame(columns=["Kafla Code", "Zaireen Name", "Passport Number", "Nationality", "Date of Birth", "Sex", "Scan Time"])
 
-# Select kafla
-kafla_names = kafla_df.apply(lambda row: f"{row['Kafla Name']} ({row['Salar Name']})", axis=1).tolist()
-kafla_map = dict(zip(kafla_names, kafla_df["Kafla Code"]))
-kafla_reverse_map = dict(zip(kafla_df["Kafla Code"], kafla_names))
+# Session state
+if "uploaded_files" not in st.session_state:
+    st.session_state.uploaded_files = []
 
-selected_kafla_name = st.selectbox("Select Kafla | قافلہ منتخب کریں", options=kafla_names)
-kafla_code = kafla_map[selected_kafla_name]
-
-kafla_dir = BASE_DIR / kafla_code / "zaireen"
-kafla_dir.mkdir(parents=True, exist_ok=True)
-
-# Function to convert MRZ date
+# Utility function
 def convert_mrz_date(mrz_date):
     if not mrz_date or len(mrz_date) != 6:
         return ""
@@ -63,30 +56,30 @@ def convert_mrz_date(mrz_date):
     year += 1900 if year >= 50 else 2000
     return f"{year}-{mrz_date[2:4]}-{mrz_date[4:6]}"
 
-# Upload area
-st.markdown("### 📦 Upload Passport Images in Bulk")
-uploaded_files = st.file_uploader("Upload JPG or PNG files", accept_multiple_files=True, type=["jpg", "jpeg", "png"])
-
+# Upload via uploader
+st.markdown("### 📦 Upload Passport Images")
+uploaded_files = st.file_uploader("Upload JPG or PNG", accept_multiple_files=True, type=["jpg", "jpeg", "png"])
 if uploaded_files:
     for file in uploaded_files:
         file_path = TEMP_UPLOAD_DIR / file.name
         with open(file_path, "wb") as f:
             f.write(file.read())
-        if file.name not in st.session_state.uploaded_files:
-            st.session_state.uploaded_files.append(file.name)
+        st.session_state.uploaded_files.append(str(file_path))
 
-# Camera input for passport MRZ
-st.markdown("### 📷 Scan Passport Using Camera")
-camera_image = st.camera_input("Capture passport image (MRZ area should be clearly visible)")
-
+# Camera capture
+st.markdown("### 📷 Scan Passport (Camera)")
+camera_image = st.camera_input("Capture passport image")
 if camera_image:
-    with open("temp_camera_passport.jpg", "wb") as f:
+    path = TEMP_UPLOAD_DIR / "camera_passport.jpg"
+    with open(path, "wb") as f:
         f.write(camera_image.read())
-    mrz = read_mrz("temp_camera_passport.jpg")
+
+    mrz = read_mrz(str(path))
     if mrz:
         fields = mrz.to_dict()
-        passport_number = fields["number"]
-        if not ((df["Kafla Code"] == kafla_code) & (df["Passport Number"] == passport_number)).any():
+        passport_number = fields["number"].strip()
+
+        if not ((df["Kafla Code"] == kafla_code) & (df["Passport Number"].str.lower() == passport_number.lower())).any():
             full_name = f"{fields['surname']} {fields['names'].replace('<', ' ')}".strip()
             scan_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             row = {
@@ -99,28 +92,28 @@ if camera_image:
                 "Scan Time": scan_time
             }
             df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
-            zaireen_subdir = kafla_dir / passport_number
-            zaireen_subdir.mkdir(parents=True, exist_ok=True)
-            shutil.copy("temp_camera_passport.jpg", zaireen_subdir / "passport.jpg")
+            z_dir = kafla_dir / passport_number
+            z_dir.mkdir(parents=True, exist_ok=True)
+            shutil.copy(str(path), z_dir / "passport.jpg")
             df.to_csv(CSV_FILE, index=False)
-            st.success("✅ Passport scanned and added successfully via camera!")
+            st.success("✅ Passport added via camera!")
         else:
-            st.warning("⚠️ Duplicate passport detected. Entry skipped.")
+            st.warning("⚠️ Duplicate passport detected.")
     else:
-        st.error("❌ Could not read MRZ from camera. Please try again with a clearer image.")
+        st.error("❌ Could not read MRZ from image.")
 
 # Process uploaded files
 if st.session_state.uploaded_files:
-    st.info(f"🗂 {len(st.session_state.uploaded_files)} file(s) in queue: " + ", ".join(st.session_state.uploaded_files))
-    if st.button("🔍 Scan Uploaded Images"):
+    st.info(f"🗂 {len(st.session_state.uploaded_files)} file(s) ready")
+    if st.button("🔍 Scan Uploaded Files"):
         accepted, rejected = 0, []
-        for fname in st.session_state.uploaded_files:
-            file_path = TEMP_UPLOAD_DIR / fname
-            mrz = read_mrz(str(file_path))
+
+        for file_path in st.session_state.uploaded_files:
+            mrz = read_mrz(file_path)
             if mrz:
                 fields = mrz.to_dict()
-                passport_number = fields["number"]
-                if not ((df["Kafla Code"] == kafla_code) & (df["Passport Number"] == passport_number)).any():
+                passport_number = fields["number"].strip()
+                if not ((df["Kafla Code"] == kafla_code) & (df["Passport Number"].str.lower() == passport_number.lower())).any():
                     full_name = f"{fields['surname']} {fields['names'].replace('<', ' ')}".strip()
                     scan_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     row = {
@@ -133,43 +126,45 @@ if st.session_state.uploaded_files:
                         "Scan Time": scan_time
                     }
                     df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
-                    zaireen_subdir = kafla_dir / passport_number
-                    zaireen_subdir.mkdir(parents=True, exist_ok=True)
-                    shutil.copy(str(file_path), zaireen_subdir / "passport.jpg")
+                    z_dir = kafla_dir / passport_number
+                    z_dir.mkdir(parents=True, exist_ok=True)
+                    shutil.copy(file_path, z_dir / "passport.jpg")
                     accepted += 1
                 else:
-                    rejected.append(f"{fname} (Duplicate)")
+                    rejected.append(f"{file_path} (Duplicate)")
             else:
-                rejected.append(f"{fname} (MRZ Not Readable)")
+                rejected.append(f"{file_path} (Unreadable)")
+
             os.remove(file_path)
 
         df.to_csv(CSV_FILE, index=False)
         st.session_state.uploaded_files.clear()
-        st.success(f"✅ {accepted} scanned successfully!")
+        st.success(f"✅ {accepted} added.")
         if rejected:
-            st.warning(f"⚠️ {len(rejected)} rejected:")
+            st.warning("⚠️ Some files rejected:")
             st.code("\n".join(rejected))
 
-# Show Zaireen list for selected kafla
+# Display Zaireen list
 st.markdown("### 🧾 Zaireen List")
-kafla_df_filtered = df[df["Kafla Code"] == kafla_code]
+filtered = df[df["Kafla Code"] == kafla_code]
 
-if not kafla_df_filtered.empty:
-    for idx, row in kafla_df_filtered.iterrows():
+if not filtered.empty:
+    for idx, row in filtered.iterrows():
         with st.expander(f"{row['Zaireen Name']} - {row['Passport Number']}"):
             col1, col2, col3 = st.columns([3, 3, 1])
+
             with col1:
                 visa_iran = st.file_uploader("Iran Visa", key=f"iran_{idx}", label_visibility="collapsed")
                 if visa_iran:
-                    path = kafla_dir / row["Passport Number"] / "iran_visa.jpg"
-                    with open(path, "wb") as f:
+                    with open(kafla_dir / row["Passport Number"] / "iran.jpg", "wb") as f:
                         f.write(visa_iran.read())
+
             with col2:
                 visa_iraq = st.file_uploader("Iraq Visa", key=f"iraq_{idx}", label_visibility="collapsed")
                 if visa_iraq:
-                    path = kafla_dir / row["Passport Number"] / "iraq_visa.jpg"
-                    with open(path, "wb") as f:
+                    with open(kafla_dir / row["Passport Number"] / "iraq.jpg", "wb") as f:
                         f.write(visa_iraq.read())
+
             with col3:
                 if st.button("🗑️ Delete", key=f"del_{idx}"):
                     shutil.rmtree(kafla_dir / row["Passport Number"], ignore_errors=True)
@@ -178,35 +173,32 @@ if not kafla_df_filtered.empty:
                     st.rerun()
 
     # Download CSV
-    st.download_button("⬇️ Download CSV", data=kafla_df_filtered.to_csv(index=False), file_name=f"{kafla_code}_zaireen.csv", mime="text/csv")
+    st.download_button("⬇️ Download CSV", data=filtered.to_csv(index=False), file_name=f"{kafla_code}_zaireen.csv", mime="text/csv")
 
     # Generate PDF
     def generate_pdf():
-        buffer = io.BytesIO()
-        doc = SimpleDocTemplate(buffer, pagesize=A4)
+        buf = io.BytesIO()
+        doc = SimpleDocTemplate(buf, pagesize=A4)
         styles = getSampleStyleSheet()
         elements = [
-            Paragraph("<b>ZAIREEN LIST 2025 (KHI-GWD)</b>", styles["Title"]),
+            Paragraph("ZAIREEN LIST 2025", styles["Title"]),
             Spacer(1, 12),
             Paragraph(f"Kafla: {selected_kafla_name}", styles["Normal"]),
             Spacer(1, 12),
-            Paragraph("Vehicle No: ____________    Date: ____________", styles["Normal"]),
-            Spacer(1, 12),
         ]
-        data = [["Name", "Passport No", "Nationality", "DOB", "Sex"]]
-        for _, r in kafla_df_filtered.iterrows():
-            data.append([r["Zaireen Name"], r["Passport Number"], r["Nationality"], r["Date of Birth"], r["Sex"]])
-        t = Table(data)
+        table_data = [["Name", "Passport No", "Nationality", "DOB", "Sex"]]
+        for _, r in filtered.iterrows():
+            table_data.append([r["Zaireen Name"], r["Passport Number"], r["Nationality"], r["Date of Birth"], r["Sex"]])
+        t = Table(table_data)
         t.setStyle(TableStyle([
-            ('GRID', (0,0), (-1,-1), 0.5, colors.black),
-            ('BACKGROUND', (0,0), (-1,0), colors.lightgrey)
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.lightgrey)
         ]))
-        elements.append(t)
-        elements.append(Spacer(1, 24))
-        elements.append(Paragraph("Sign: ____________________", styles["Normal"]))
+        elements.extend([t, Spacer(1, 24), Paragraph("Sign: ____________________", styles["Normal"])])
         doc.build(elements)
-        buffer.seek(0)
-        return buffer
+        buf.seek(0)
+        return buf
 
-    pdf_buffer = generate_pdf()
-    st.download_button("⬇️ Download PDF", data=pdf_buffer, file_name=f"{kafla_code}_{selected_kafla_name}.pdf", mime="application/pdf")
+    pdf_data = generate_pdf()
+    pdf_filename = f"{kafla_code}_{selected_kafla_name.replace(' ', '_')}.pdf"
+    st.download_button("⬇️ Download PDF", data=pdf_data, file_name=pdf_filename, mime="application/pdf")
