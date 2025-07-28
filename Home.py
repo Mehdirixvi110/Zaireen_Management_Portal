@@ -76,7 +76,7 @@ set_bg_from_local("Background.jpg")
 # ✅ Header with logo
 st.markdown(f"""
 <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h1 style="margin-bottom: 0; color: #111;">Zaireen Management Portal - 2025</h1>
+    <h1 style='text-align: center; font-size: 48px; font-weight: bold; color: black;'> Zaireen Management Portal - 2025</h1>
     <img src="data:image/jpg;base64,{base64.b64encode(open("Logo.jpg", "rb").read()).decode()}" width="120" style="margin-right: 20px;"/>
 </div>
 """, unsafe_allow_html=True)
