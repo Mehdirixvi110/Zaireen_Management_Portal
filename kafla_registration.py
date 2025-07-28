@@ -19,7 +19,7 @@ st.markdown("""
     label {
         color: #000000 !important;
         font-weight: 500 !important;
-        font-size: 24px !important;
+        font-size: 42px !important;
     }
     </style>
 """, unsafe_allow_html=True)
