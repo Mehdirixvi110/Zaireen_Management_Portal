@@ -15,10 +15,11 @@ st.title("🕌 Kafla Registration Form | قافلہ رجسٹریشن")
 
 st.markdown("""
     <style>
-    /* Darken the label text */
+    /* Customize label text style */
     label {
         color: #000000 !important;
-        font-weight: 500;
+        font-weight: 500 !important;
+        font-size: 24px !important;
     }
     </style>
 """, unsafe_allow_html=True)
