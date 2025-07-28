@@ -13,7 +13,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 
 # App setup
-st.set_page_config(page_title="Zaireen Registration", layout="centered")
+#st.set_page_config(page_title="Zaireen Registration", layout="centered")
 st.title("🧕 Zaireen Registration | زائرین کی رجسٹریشن")
 
 # Define storage paths
