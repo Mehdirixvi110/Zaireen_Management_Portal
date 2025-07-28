@@ -11,7 +11,7 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 
 # App Config
-st.set_page_config(page_title="Convoy Documents Submission", layout="centered")
+#st.set_page_config(page_title="Convoy Documents Submission", layout="centered")
 st.title("🚍 Convoy Documents Submission | قافلے کی دستاویزات")
 
 # Setup folders
