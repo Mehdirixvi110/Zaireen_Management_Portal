@@ -3,6 +3,12 @@ from streamlit_option_menu import option_menu
 import base64
 import os
 import importlib.util
+# ✅ Set Streamlit page configuration (must be at top level)
+st.markdown("""
+<h1 style='text-align: center; font-size: 48px; font-weight: bold; color: black;'>
+    Moakab e Zainabiya - موکب زینبیہ
+</h1>
+""", unsafe_allow_html=True)
 
 # ✅ Set Streamlit page configuration (must be at top level)
 st.set_page_config(
@@ -75,7 +81,7 @@ set_bg_from_local("Background.jpg")
 # ✅ Header with logo
 st.markdown(f"""
 <div style="display: flex; justify-content: space-between; align-items: center;">
-    <h2 style="margin-bottom: 0; color: #111;">Zaireen Management Portal - 2025<br><small>(By Moakab E Zainabiya)</small></h2>
+    <h2 style="margin-bottom: 0; color: #111;">Zaireen Management Portal - 2025</h2>
     <img src="data:image/jpg;base64,{base64.b64encode(open("Logo.jpg", "rb").read()).decode()}" width="120" style="margin-right: 20px;"/>
 </div>
 """, unsafe_allow_html=True)
