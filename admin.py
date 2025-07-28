@@ -19,6 +19,13 @@ if not kafla_file.exists() or not zaireen_file.exists():
 kafla_df = pd.read_csv(kafla_file)
 zaireen_df = pd.read_csv(zaireen_file)
 
+# Ensure required columns
+if "Contact" not in kafla_df.columns:
+    kafla_df["Contact"] = ""
+
+if "Contact" not in zaireen_df.columns:
+    zaireen_df["Contact"] = ""
+
 # Generate dropdown label
 kafla_df['Label'] = kafla_df.apply(lambda row: f"{row['Kafla Name']} ({row['Salar Name']}) - {row['Kafla Code']}", axis=1)
 kafla_map = dict(zip(kafla_df['Label'], kafla_df['Kafla Code']))
@@ -56,33 +63,38 @@ else:
     for i, row in filtered_df.iterrows():
         st.markdown("---")
         cols = st.columns([2, 2, 2, 2, 1, 1])
-        full_name = cols[0].text_input("Full Name", row['Full Name'], key=f"name_{i}")
+        full_name = cols[0].text_input("Full Name", row['Zaireen Name'], key=f"name_{i}")
         passport = cols[1].text_input("Passport Number", row['Passport Number'], key=f"passport_{i}", disabled=True)
         contact = cols[2].text_input("Contact", row.get('Contact', ''), key=f"contact_{i}")
         nationality = cols[3].text_input("Nationality", row['Nationality'], key=f"nationality_{i}")
 
-        # Show attachments (passport, iran, iraq visa)
+        # Show attachments
         docs_path = base_path / selected_kafla_code / "zaireen" / passport
         doc_cols = st.columns(3)
-        for idx, doc_type in enumerate(['passport', 'iran_visa', 'iraq_visa']):
+        for idx, doc_type in ['passport', 'iran', 'iraq']:
             file = docs_path / f"{doc_type}.jpg"
             if file.exists():
                 doc_cols[idx].image(Image.open(file), caption=file.name, width=100)
             else:
-                doc_cols[idx].markdown(f"*{doc_type.replace('_', ' ').title()}: N/A*")
+                doc_cols[idx].markdown(f"*{doc_type.title()} Visa: ❌ Not Found*")
 
         col_action = st.columns([1, 1])
         if col_action[0].button("💾 Save", key=f"save_{i}"):
-            zaireen_df.loc[(zaireen_df['Passport Number'] == row['Passport Number']), 'Full Name'] = full_name
-            zaireen_df.loc[(zaireen_df['Passport Number'] == row['Passport Number']), 'Contact'] = contact
-            zaireen_df.loc[(zaireen_df['Passport Number'] == row['Passport Number']), 'Nationality'] = nationality
+            zaireen_df.loc[(zaireen_df['Passport Number'] == passport), 'Zaireen Name'] = full_name
+            zaireen_df.loc[(zaireen_df['Passport Number'] == passport), 'Contact'] = contact
+            zaireen_df.loc[(zaireen_df['Passport Number'] == passport), 'Nationality'] = nationality
             zaireen_df.to_csv(zaireen_file, index=False)
             st.success(f"✅ Updated: {full_name}")
             st.session_state["_refresh"] = True
 
         if col_action[1].button("🗑️ Delete", key=f"delete_{i}"):
-            zaireen_df = zaireen_df[zaireen_df['Passport Number'] != row['Passport Number']]
+            zaireen_df = zaireen_df[zaireen_df['Passport Number'] != passport]
             zaireen_df.to_csv(zaireen_file, index=False)
+            # Optional: also remove the folder
+            folder = docs_path
+            if folder.exists():
+                import shutil
+                shutil.rmtree(folder, ignore_errors=True)
             st.warning(f"❌ Deleted: {full_name}")
             st.session_state["_refresh"] = True
 
