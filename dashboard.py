@@ -9,7 +9,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 
 # Page Config
-st.set_page_config(page_title="📊 Dashboard | زائرین کی رپورٹ", layout="wide")
+#st.set_page_config(page_title="📊 Dashboard | زائرین کی رپورٹ", layout="wide")
 st.title("📊 Zaireen Management Dashboard | زائرین کا انتظامی ڈیش بورڈ")
 
 # Load data
