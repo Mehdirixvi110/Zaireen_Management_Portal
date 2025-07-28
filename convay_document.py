@@ -28,7 +28,12 @@ kafla_df = pd.read_csv(KAFLA_CSV)
 kafla_names = kafla_df.apply(lambda row: f"{row['Kafla Name']} ({row['Salar Name']})", axis=1).tolist()
 kafla_map = dict(zip(kafla_names, kafla_df["Kafla Code"]))
 
-selected_kafla_name = st.selectbox("Select Kafla | قافلہ منتخب کریں", options=kafla_names, key="kafla_selectbox")
+selected_kafla_name = st.selectbox("Select Kafla", options=kafla_names)
+
+if not selected_kafla_name or selected_kafla_name not in kafla_map:
+    st.warning("⚠️ Please select a valid Kafla.")
+    st.stop()
+
 kafla_code = kafla_map[selected_kafla_name]
 kafla_dir = DOCS_DIR / kafla_code
 kafla_dir.mkdir(parents=True, exist_ok=True)
