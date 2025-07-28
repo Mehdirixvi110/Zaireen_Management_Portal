@@ -4,7 +4,7 @@ from pathlib import Path
 from PIL import Image
 
 # Page Config
-st.set_page_config(page_title="🛠️ Admin Panel | ایڈمن پینل", layout="wide")
+#st.set_page_config(page_title="🛠️ Admin Panel | ایڈمن پینل", layout="wide")
 st.title("🛠️ Zaireen Admin Panel | زائرین کا ایڈمن پینل")
 
 # Load data
