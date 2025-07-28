@@ -3,12 +3,7 @@ from streamlit_option_menu import option_menu
 import base64
 import os
 import importlib.util
-# ✅ Set Streamlit page configuration (must be at top level)
-st.markdown("""
-<h1 style='text-align: center; font-size: 48px; font-weight: bold; color: black;'>
-    Moakab e Zainabiya - موکب زینبیہ
-</h1>
-""", unsafe_allow_html=True)
+
 
 # ✅ Set Streamlit page configuration (must be at top level)
 st.set_page_config(
