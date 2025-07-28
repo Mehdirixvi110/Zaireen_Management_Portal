@@ -7,8 +7,10 @@ from pathlib import Path
 from PIL import Image
 import shutil
 
-# App title and config
-st.set_page_config(page_title="Kafla Registration", layout="centered")
+# Prevent page config from being called again if this is imported
+if __name__ == "__main__":
+    st.set_page_config(page_title="Kafla Registration", layout="centered")
+
 st.title("🕌 Kafla Registration Form | قافلہ رجسٹریشن")
 
 # Define storage path
@@ -136,5 +138,3 @@ if not df.empty:
                 st.rerun()
 
     st.dataframe(sorted_df, use_container_width=True)
-
-# This sets up the folder structure to allow adding visa documents per Zaireen under each Kafla
