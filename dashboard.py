@@ -24,6 +24,14 @@ if not kafla_file.exists() or not zaireen_file.exists():
 kafla_df = pd.read_csv(kafla_file)
 zaireen_df = pd.read_csv(zaireen_file)
 
+# Ensure required columns
+if "Contact" not in kafla_df.columns:
+    kafla_df["Contact"] = ""
+if "Contact" not in zaireen_df.columns:
+    zaireen_df["Contact"] = ""
+if "Sex" not in zaireen_df.columns:
+    zaireen_df["Sex"] = "Unknown"
+
 # Merge both for aggregate analysis
 merged_df = zaireen_df.merge(kafla_df, on="Kafla Code", how="left")
 
@@ -32,7 +40,7 @@ col1, col2, col3, col4 = st.columns(4)
 col1.metric("🧍‍🤝‍🧍 Total Zaireen | زائرین", f"{len(zaireen_df):,}")
 col2.metric("🚌 Total Kaflas | قافلے", f"{len(kafla_df):,}")
 col3.metric("🏛️ Cities Covered | شہروں کی تعداد", merged_df['City'].nunique())
-col4.metric("📞 Unique Contacts", merged_df['Contact'].nunique() if 'Contact' in merged_df.columns else "N/A")
+col4.metric("📞 Unique Contacts", merged_df['Contact'].nunique())
 
 st.markdown("---")
 
@@ -70,7 +78,7 @@ city_chart = px.bar(
     city_counts,
     x='City',
     y='Total Zaireen',
-    title='🏛️ City-wise Distribution | شہروں کے لیہ سے تقسیم',
+    title='🏛️ City-wise Distribution | شہروں کے لحاظ سے تقسیم',
     template='plotly_dark',
     color_discrete_sequence=['#00BFFF']
 )
@@ -93,33 +101,41 @@ st.markdown("---")
 # Export Reports Section
 st.markdown("### 📤 Export Reports | رپورٹس ایکسپورٹ کریں")
 
+# Excel export
 def generate_excel():
     output = BytesIO()
     with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         kafla_df.to_excel(writer, index=False, sheet_name='Kafla')
         zaireen_df.to_excel(writer, index=False, sheet_name='Zaireen')
+        merged_df.to_excel(writer, index=False, sheet_name='Merged')
     output.seek(0)
     return output
 
+# PDF export
 def generate_pdf():
     output = BytesIO()
     doc = SimpleDocTemplate(output, pagesize=A4)
     styles = getSampleStyleSheet()
     elements = [Paragraph("📊 Zaireen Report | زائرین کی رپورٹ", styles['Title']), Spacer(1, 12)]
 
-    table_data = [merged_df.columns.tolist()] + merged_df.values.tolist()
-    table = Table(table_data, repeatRows=1)
+    # Limit to a subset of fields to avoid PDF overflow
+    display_cols = ['Zaireen Name', 'Passport Number', 'Nationality', 'Sex', 'City', 'Province', 'Kafla Name']
+    data = [display_cols] + merged_df[display_cols].fillna("").values.tolist()
+
+    table = Table(data, repeatRows=1)
     table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), colors.darkblue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.25, colors.grey)
     ]))
     elements.append(table)
     doc.build(elements)
     output.seek(0)
     return output
 
+# Download buttons
 excel_file = generate_excel()
 pdf_file = generate_pdf()
 
