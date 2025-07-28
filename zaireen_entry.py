@@ -13,7 +13,7 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet
 
 # App setup
-#st.set_page_config(page_title="Zaireen Registration", layout="centered")
+# st.set_page_config(page_title="Zaireen Registration", layout="centered")
 st.title("🧕 Zaireen Registration | زائرین کی رجسٹریشن")
 
 # Define storage paths
@@ -29,11 +29,19 @@ if not KAFLA_CSV.exists():
     st.stop()
 
 kafla_df = pd.read_csv(KAFLA_CSV)
+if kafla_df.empty:
+    st.error("⚠️ Kafla list is empty. Please add entries first.")
+    st.stop()
+
 kafla_names = kafla_df.apply(lambda row: f"{row['Kafla Name']} ({row['Salar Name']})", axis=1).tolist()
 kafla_map = dict(zip(kafla_names, kafla_df["Kafla Code"]))
 
-# Select Kafla
 selected_kafla_name = st.selectbox("Select Kafla | قافلہ منتخب کریں", options=kafla_names)
+
+if not selected_kafla_name or selected_kafla_name not in kafla_map:
+    st.warning("⚠️ Please select a valid Kafla.")
+    st.stop()
+
 kafla_code = kafla_map[selected_kafla_name]
 kafla_dir = BASE_DIR / kafla_code / "zaireen"
 kafla_dir.mkdir(parents=True, exist_ok=True)
@@ -202,24 +210,3 @@ if not filtered.empty:
     pdf_data = generate_pdf()
     pdf_filename = f"{kafla_code}_{selected_kafla_name.replace(' ', '_')}.pdf"
     st.download_button("⬇️ Download PDF", data=pdf_data, file_name=pdf_filename, mime="application/pdf")
-# Load kafla list
-if KAFLA_CSV.exists():
-    kafla_df = pd.read_csv(KAFLA_CSV)
-else:
-    st.error("⚠️ No Kafla data found. Please register a Kafla first.")
-    st.stop()
-
-kafla_names = kafla_df.apply(lambda row: f"{row['Kafla Name']} ({row['Salar Name']})", axis=1).tolist()
-kafla_map = dict(zip(kafla_names, kafla_df["Kafla Code"]))
-
-if not kafla_names:
-    st.error("⚠️ No Kafla data available.")
-    st.stop()
-
-selected_kafla_name = st.selectbox("Select Kafla | قافلہ منتخب کریں", options=kafla_names)
-
-if not selected_kafla_name:
-    st.warning("⚠️ No Kafla selected.")
-    st.stop()
-
-kafla_code = kafla_map[selected_kafla_name]
