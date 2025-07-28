@@ -13,6 +13,16 @@ import shutil
 
 st.title("🕌 Kafla Registration Form | قافلہ رجسٹریشن")
 
+st.markdown("""
+    <style>
+    /* Darken the label text */
+    label {
+        color: #000000 !important;
+        font-weight: 500;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 # Define storage path
 DATA_DIR = Path("docs")
 DATA_DIR.mkdir(exist_ok=True)
