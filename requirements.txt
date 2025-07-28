@@ -7,3 +7,5 @@ reportlab==4.1.0
 plotly==5.22.0
 XlsxWriter==3.2.0
 
+# Sometimes helps avoid matplotlib/plotly conflict
+matplotlib==3.8.4
