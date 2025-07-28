@@ -7,10 +7,6 @@ from pathlib import Path
 from PIL import Image
 import shutil
 
-# Prevent page config from being called again if this is imported
-#if __name__ == "__main__":
-    #st.set_page_config(page_title="Kafla Registration", layout="centered")
-
 st.title("🕌 Kafla Registration Form | قافلہ رجسٹریشن")
 
 st.markdown("""
@@ -19,7 +15,7 @@ st.markdown("""
     label {
         color: #000000 !important;
         font-weight: 500 !important;
-        font-size: 42px !important;
+        font-size: 24px !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -95,7 +91,7 @@ if submitted:
         df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
         df.to_csv(CSV_FILE, index=False)
 
-        kafla_dir = DATA_DIR / kafla_code
+        kafla_dir = DATA_DIR / str(kafla_code)
         (kafla_dir / "registration").mkdir(parents=True, exist_ok=True)
         (kafla_dir / "vehicle").mkdir(parents=True, exist_ok=True)
         (kafla_dir / "others").mkdir(parents=True, exist_ok=True)
@@ -142,7 +138,7 @@ if not df.empty:
             if st.button("🗑️ Delete", key=f"delete_{row['Kafla Code']}"):
                 df = df[df["Kafla Code"] != row["Kafla Code"]]
                 df.to_csv(CSV_FILE, index=False)
-                folder_to_remove = DATA_DIR / row["Kafla Code"]
+                folder_to_remove = DATA_DIR / str(row["Kafla Code"])
                 if folder_to_remove.exists():
                     shutil.rmtree(folder_to_remove)
                 st.success(f"🗑️ Kafla '{row['Kafla Name']}' deleted.")
